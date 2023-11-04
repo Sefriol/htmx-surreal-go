@@ -3,18 +3,18 @@ package main
 import (
 	"fmt"
 	"html/template"
-	"net/http"
 	"io"
+	"log/slog"
+	"net/http"
 	"os"
 	"path/filepath"
-	"log/slog"
-	
+
 	"github.com/labstack/gommon/log"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/surrealdb/surrealdb.go"
-	
+
 	"github.com/sefriol/htmx-surreal-go/view"
 )
 
@@ -107,6 +107,7 @@ func main() {
 
 
 	e.Static("/css", "css");
+	e.Static("/dist", "dist");
 	e.Renderer = &TemplateRenderer{
 		templates: tmpl,
 	}

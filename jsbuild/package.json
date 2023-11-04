@@ -1,0 +1,13 @@
+{
+  "main": "orbElement.js",
+  "scripts": {
+    "build": "webpack --mode production"
+  },
+  "dependencies": {
+    "@memgraph/orb": "^0.4.1"
+  },
+  "devDependencies": {
+    "webpack": "^5.64.4",
+    "webpack-cli": "^4.9.1"
+  }
+}

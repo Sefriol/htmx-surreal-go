@@ -9,13 +9,16 @@ var Index = `<!DOCTYPE html>
     <script src="https://unpkg.com/htmx.org@1.9.4" integrity="sha384-zUfuhFKKZCbHTY6aRR46gxiqszMk5tcHjsVFxnUo8VMus4kHGVdIYVbOYYNlKmHV" crossorigin="anonymous"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@1/css/pico.min.css">
     <link href="css/style.css" rel="stylesheet">
+    <script src="dist/bundle.js"></script>
     </head>
     <body>
       <main class="grid">
         <div class="container">
           {{template "Users" . }}
         </div>
-        <div class="container" id="relations">
+        <div class="container"> 
+	  <orb-graph></orb-graph>
+	  <div id="relations"></div>
         </div>
     </main>
   </body>
