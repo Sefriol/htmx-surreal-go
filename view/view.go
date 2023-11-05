@@ -44,7 +44,7 @@ var Users = `{{define "Users"}}
 
 var Relations = `{{define "relations"}}
 <div>
-{{ if . }}{{.}}
+{{ if . }}
 <h1>Relatives for {{(index . 0).User.Name}} {{(index . 0).User.Surname}}</h1>
 {{else}}
 	<h1>User has no relatives</h1>

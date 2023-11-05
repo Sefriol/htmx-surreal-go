@@ -11,11 +11,18 @@ import (
 
 	"github.com/labstack/gommon/log"
 
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/surrealdb/surrealdb.go"
+	"github.com/surrealdb/surrealdb.go/pkg/marshal"
+	gorilla "github.com/surrealdb/surrealdb.go/pkg/gorilla"
 
 	"github.com/sefriol/htmx-surreal-go/view"
+)
+
+var (
+	upgrader = websocket.Upgrader{}
 )
 
 type User struct {
@@ -53,6 +60,11 @@ type QueryResult struct {
     Time   string `json:"time"`
 }
 
+type LiveQueryResult struct {
+    Data interface{} `json:"data"`
+    Error string `json:"error"`
+}
+
 type Content struct {
     Users []User
     User User
@@ -72,7 +84,9 @@ func main() {
 	tmpl := template.New("index")
 
 	var err error
-	db, err := surrealdb.New("ws://localhost:8000/rpc")
+	impl := gorilla.Create()
+	gws, err := impl.Connect("ws://localhost:8000/rpc")
+	db, err := surrealdb.New("ws://localhost:8000/rpc", gws)
 	if err != nil {
 		panic(err)
 	}
@@ -147,7 +161,7 @@ func main() {
 
 	// Unmarshal data
 	selectedUser := new([]User)
-	err = surrealdb.Unmarshal(userData, &selectedUser)
+	err = marshal.Unmarshal(userData, &selectedUser)
 	if err != nil {
 		panic(err)
 	}
@@ -155,6 +169,17 @@ func main() {
 	items := Content{
 		Users: *selectedUser,
 	}
+
+	live, err := db.Live("relative")
+	if err != nil {
+		panic(err)
+	}
+
+	notifications, err := db.LiveNotifications(live)
+	if err != nil {
+		panic(err)
+	}
+
 	e.GET("/", func(c echo.Context) error {
 		//log.Warn(surql)
 		return c.Render(http.StatusOK, "index", items)
@@ -169,7 +194,7 @@ func main() {
 		}
 		var user User
 		// Unmarshal data
-		err = surrealdb.Unmarshal(data, &user)
+		err = marshal.Unmarshal(data, &user)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -185,7 +210,7 @@ func main() {
 		}
 		var user User
 		// Unmarshal data
-		err = surrealdb.Unmarshal(data, &user)
+		err = marshal.Unmarshal(data, &user)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -198,7 +223,7 @@ func main() {
 
 		// Unmarshal data
 		users := new([]User)
-		err = surrealdb.Unmarshal(userData, &users)
+		err = marshal.Unmarshal(userData, &users)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -226,7 +251,7 @@ func main() {
 		log.Warn(data_str)
 		result := new([]QueryResult)
 		// Unmarshal data
-		err = surrealdb.Unmarshal(data, &result)
+		err = marshal.Unmarshal(data, &result)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -268,7 +293,7 @@ func main() {
 		log.Warn(data_str)
 		result := make([]SubQueryResult, 1)
 
-                err = surrealdb.Unmarshal(data, &result)
+                err = marshal.Unmarshal(data, &result)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -317,7 +342,7 @@ func main() {
 
 		var user User
 		// Unmarshal data
-		err = surrealdb.Unmarshal(data, &user)
+		err = marshal.Unmarshal(data, &user)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError)
 		}
@@ -352,7 +377,7 @@ func main() {
 		
 		var user User
 		// Unmarshal data
-		err = surrealdb.Unmarshal(data, &user)
+		err = marshal.Unmarshal(data, &user)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError, err)
 		}
@@ -377,11 +402,31 @@ func main() {
 
 		// Unmarshal data
 		createdUser := make([]User, 1)
-		err = surrealdb.Unmarshal(data, &createdUser)
+		err = marshal.Unmarshal(data, &createdUser)
 		if err != nil {
 			return echo.NewHTTPError(http.StatusInternalServerError)
 		}
 		return c.Render(http.StatusOK, "user", createdUser[0])
+	})
+
+	e.GET("/ws", func(c echo.Context) error {
+		ws, err := upgrader.Upgrade(c.Response(),c.Request(), nil)
+		if err != nil {
+			return err
+		}
+		defer ws.Close()
+
+		for {
+			notification := <-notifications
+			
+			// Write the query result to the websocket
+			err = ws.WriteJSON(notification)
+			if err != nil {
+			    log.Warn(err)
+			    break
+			}
+		}
+		return err
 	})
 
 	e.Logger.Fatal(e.Start(":1323"))
