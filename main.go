@@ -414,7 +414,20 @@ func main() {
 		if err != nil {
 			return err
 		}
+
+		data, err := db.Query("SELECT * FROM relative",
+			map[string]string{})
+
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
+
+		err = ws.WriteJSON(data)
+		if err != nil {
+			return echo.NewHTTPError(http.StatusInternalServerError, err)
+		}
 		defer ws.Close()
+		
 
 		for {
 			notification := <-notifications
@@ -425,8 +438,10 @@ func main() {
 			    log.Warn(err)
 			    break
 			}
+
+
 		}
-		return err
+		return c.NoContent(http.StatusOK)
 	})
 
 	e.Logger.Fatal(e.Start(":1323"))

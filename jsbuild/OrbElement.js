@@ -22,30 +22,39 @@ class OrbGraph extends HTMLElement {
       const data = JSON.parse(event.data)
       switch (data.action) {
         case "CREATE":
-          self.nodes.push({
-            id: data.result.in,
-            label: data.result.in
-          })
-          self.nodes.push({
-            id: data.result.out,
-            label: data.result.out
-          })
-          self.edges.push({
-            id: data.result.id,
-            start: data.result.in,
-            end: data.result.out
-          })
+          self.parseRelative(data.result)
           break;
         case "UPDATE":
-
           break;
         case "DELETE":
           break;
         default:
+          if(data?.[0]?.result) {
+            for (const relative of data[0].result) {
+              self.parseRelative(relative)
+            }
+          }
           break;
       }
       self.updateGraph()
+      console.log(self)
     }
+  }
+
+  parseRelative(relative) {
+    this.nodes.push({
+      id: relative.in,
+      label: relative.in
+    })
+    this.nodes.push({
+      id: relative.out,
+      label: relative.out
+    })
+    this.edges.push({
+      id: relative.id,
+      start: relative.in,
+      end: relative.out
+    })
   }
 
   connectedCallback() {
